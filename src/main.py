@@ -38,6 +38,19 @@ class MophicApplication(Adw.Application):
                          resource_base_path='/io/github/eijiotieno/Mophic')
         self.create_action('quit', lambda *_: self.quit(), ['<control>q'])
         self.create_action('about', self.on_about_action)
+        self.set_accels_for_action('win.new', ['<control>n'])
+        self.set_accels_for_action('win.open', ['<control>o'])
+        self.set_accels_for_action('win.save', ['<control>s'])
+        self.set_accels_for_action('win.save-as', ['<control><shift>s'])
+        self.set_accels_for_action('win.export', ['<control>e'])
+        self.set_accels_for_action('win.undo', ['<control>z'])
+        self.set_accels_for_action('win.redo', ['<control><shift>z'])
+        self.set_accels_for_action('win.play-pause', ['space'])
+        self.set_accels_for_action('win.goto-start', ['Home'])
+        self.set_accels_for_action('win.goto-end', ['End'])
+        self.set_accels_for_action('win.step-back', ['Left'])
+        self.set_accels_for_action('win.step-forward', ['Right'])
+        self.set_accels_for_action('win.delete', ['Delete'])
 
     def do_activate(self):
         """Called when the application is activated.

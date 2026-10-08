@@ -377,21 +377,26 @@ def test_image_scales_with_bilinear_filtering(tmp_path):
     assert 0 < boundary.r < 255 and 0 < boundary.b < 255
 
 
-def test_missing_image_raises_render_error_with_path(tmp_path):
+def test_missing_image_draws_soft_placeholder(tmp_path):
     missing = str(tmp_path / 'nope.png')
     comp = make_comp()
-    comp.add_layer(ImageLayer(path=missing))
-    with pytest.raises(RenderError, match='nope.png'):
-        render(comp)
+    comp.add_layer(ImageLayer(path=missing, position=Point(0, 0)))
+    frame = render(comp)
+    # Placeholder is magenta-ish, not the black background.
+    pixel = frame.pixel(20, 20)
+    assert pixel.a == 255
+    assert pixel.r > 80 and pixel.b > 40
 
 
-def test_invalid_image_raises_render_error(tmp_path):
+def test_invalid_image_draws_soft_placeholder(tmp_path):
     path = tmp_path / 'bad.png'
     path.write_bytes(b'not an image')
     comp = make_comp()
-    comp.add_layer(ImageLayer(path=str(path)))
-    with pytest.raises(RenderError, match='bad.png'):
-        render(comp)
+    comp.add_layer(ImageLayer(path=str(path), position=Point(0, 0)))
+    frame = render(comp)
+    pixel = frame.pixel(20, 20)
+    assert pixel.a == 255
+    assert pixel.r > 80
 
 
 def test_images_are_cached_per_renderer_by_resolved_path(tmp_path):
@@ -409,8 +414,20 @@ def test_images_are_cached_per_renderer_by_resolved_path(tmp_path):
     assert frame_bytes(first) == frame_bytes(second)
 
     renderer.clear_image_cache()
-    with pytest.raises(RenderError):
-        renderer.render_frame(comp, 0.0)
+    # Soft placeholder after the file is gone — still renders.
+    third = renderer.render_frame(comp, 0.0)
+    assert third.width == first.width
+
+
+def test_relative_image_path_uses_base_directory(tmp_path):
+    path = tmp_path / 'img.png'
+    red_blue_png(path)
+    comp = make_comp()
+    comp.add_layer(ImageLayer(path='img.png', position=Point(0, 0)))
+    renderer = CairoRenderer(base_directory=tmp_path)
+    frame = renderer.render_frame(comp, 0.0)
+    assert frame.pixel(2, 2) == RED_PX
+
 
 
 # --- Transforms and opacity -------------------------------------------------------------------

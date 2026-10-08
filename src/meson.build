@@ -28,12 +28,16 @@ configure_file(
 
 mophic_sources = [
   '__init__.py',
+  'document.py',
+  'export_dialog.py',
   'layer_factory.py',
   'layer_list.py',
   'main.py',
   'playback.py',
   'preview.py',
   'properties_panel.py',
+  'timeline.py',
+  'timeline_geometry.py',
   'window.py',
 ]
 

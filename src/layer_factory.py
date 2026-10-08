@@ -117,10 +117,11 @@ def create_solid_layer(composition: Composition) -> SolidLayer:
     )
 
 
-def create_image_layer(composition: Composition) -> ImageLayer:
+def create_image_layer(composition: Composition, path: str | None = None) -> ImageLayer:
+    image_path = path if path is not None else str(LOGO_PATH)
     return ImageLayer(
         name=unique_name(composition, 'Image'),
-        path=str(LOGO_PATH),
+        path=image_path,
         position=_center(composition),
         anchor_point=Point(LOGO_SIZE / 2, LOGO_SIZE / 2),
     )

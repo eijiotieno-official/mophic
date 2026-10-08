@@ -37,22 +37,23 @@ def test_transform_edits_update_core(window_class, app):
 
 
 @requires_display
-def test_animated_property_is_read_only_at_playhead(window_class, app):
+def test_animated_property_edit_sets_keyframe_at_playhead(window_class, app):
     win = make_window(window_class, app, composition=build_demo_composition())
     try:
         title = select(win, 'Title')
         win.playback.set_time(1.0)
         expected = title.position.value_at(1.0)
-        keyframes_before = title.position.keyframes
         base_before = title.position.base_value
         win._bind_properties()
         assert win.properties._pos_x.get_value() == pytest.approx(expected.x)  # noqa: SLF001
         assert win.properties._pos_y.get_value() == pytest.approx(expected.y)  # noqa: SLF001
-        assert win.properties._pos_x.get_sensitive() is False  # noqa: SLF001
+        assert win.properties._pos_x.get_sensitive() is True  # noqa: SLF001
         win._on_property_edit('position_x', 999.0)
-        assert title.position.keyframes == keyframes_before
         assert title.position.base_value == base_before
-        assert title.position.value_at(1.0) == expected
+        kf = title.position.get_keyframe(1.0)
+        assert kf is not None
+        assert kf.value.x == pytest.approx(999.0)
+        assert title.position.value_at(1.0).x == pytest.approx(999.0)
     finally:
         win.destroy()
 

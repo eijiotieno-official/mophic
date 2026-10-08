@@ -5,16 +5,13 @@ GTK 4 and libadwaita.
 
 ## Current status
 
-**Phase 5 — layer list and properties panel.**
+**MVP complete (Phases 1–8).**
 
-The `core/` package models projects, compositions, layers, animatable
-properties, keyframes and easing, saves and loads them as JSON, and supports
-undo/redo. `core/renderer.py` renders any composition at any time to a Cairo
-image. The application is a basic layer editor: preview/playback, a layer
-list, and a properties panel for transforms and type-specific fields.
-
-The app still opens the built-in demonstration composition. Keyframe editing,
-timeline tracks, project open/save and export are not implemented yet.
+Mophic edits layered compositions with keyframed transforms, a timeline,
+project open/save with sidecar image assets, preview playback, undo/redo, and
+H.264 MP4 export through FFmpeg. Visual quality is CPU Cairo (no GPU
+compositor, no motion blur, limited text/shape fidelity compared with
+professional tools).
 
 ## Application ID
 
@@ -22,238 +19,117 @@ timeline tracks, project open/save and export are not implemented yet.
 io.github.eijiotieno.Mophic
 ```
 
-The same ID is used by the Flatpak manifest, the desktop file, the AppStream
-metadata, the GSettings schema, the D-Bus service, the icons, the GResource
-prefix (`/io/github/eijiotieno/Mophic`) and `Adw.Application`.
-
 ## Project layout
 
 ```
-io.github.eijiotieno.Mophic.json   Flatpak manifest (org.gnome.Platform/Sdk 51)
+io.github.eijiotieno.Mophic.json   Flatpak manifest (GNOME 51 + bundled FFmpeg)
 meson.build                        Top-level Meson project
-core/                              Headless motion graphics model and Cairo renderer
-data/                              Desktop file, AppStream metadata, schema, D-Bus service, icons
-po/                                Translation setup
-examples/                          Built-in demo composition and logo asset
-src/                               GTK/libadwaita application, preview, layers and properties
-tests/                             pytest suite for core/, preview, playback and editor UI
+core/                              Model, commands, Cairo renderer, exporter
+data/                              Desktop file, AppStream, schema, icons
+examples/                          Demo composition, sample `.aemvp`, logo
+src/                               GTK UI: window, timeline, properties, document
+tests/                             pytest suite
 ```
 
-`core/` never imports GTK, GDK or libadwaita; tests enforce this. Every module
-except `core/renderer.py` uses only the Python standard library, and
-`import core` does not load Cairo or PyGObject. It is installed next to the
-application package (`share/mophic/core/`), so the UI can `import core`.
+`core/` never imports GTK, GDK or libadwaita. Everything except
+`core/renderer.py` and `core/exporter.py` is stdlib-only; those two need
+Cairo / PyGObject (exporter also needs a host or bundled `ffmpeg`).
 
-## Core model
+## Features
 
-| Module | Contents |
+| Area | Behaviour |
 |---|---|
-| `core/project.py` | `Project`, `Composition`, layer stack operations, time helpers |
-| `core/layers.py` | `SolidLayer`, `ShapeLayer`, `TextLayer`, `ImageLayer` |
-| `core/properties.py` | `Point`, `Scale`, `Color`, `Keyframe`, `AnimatableProperty` |
-| `core/easing.py` | `linear`, `ease-in`, `ease-out`, `ease-in-out`, `cubic-bezier` |
-| `core/serialization.py` | `save_project`, `load_project` |
-| `core/commands.py` | Undoable commands and `UndoStack` |
+| Layers | Solid, shape (rect/ellipse/line), text, image; add/delete/duplicate/rename/reorder/visibility |
+| Transform | Position, scale (%), rotation (°), opacity; keyframable |
+| Timeline | Tracks for the selected layer; playhead scrub; diamond keyframes; drag to move; Delete removes KF |
+| Properties | Edit values at the playhead; KF toggle; easing when a KF is selected |
+| Projects | New / Open / Save / Save As (`.aemvp`); dirty indicator; confirm on quit |
+| Assets | Sidecar `name.assets/images/`; relative image paths; missing images show a soft placeholder |
+| Playback | Play/pause, loop, scrub, Home/End, frame step |
+| Undo | Ctrl+Z / Ctrl+Shift+Z |
+| Export | MP4 via Cairo → RGBA → FFmpeg `libx264` `yuv420p`, no audio |
 
-Conventions:
+### Sample project
 
-- **Time** is in seconds (float). Frame `n` starts at `n / fps`;
-  `frame_at_time(t)` is `floor(t * fps)` with a 1e-9 tolerance for
-  floating-point error. A composition's `duration` is its exclusive end.
-- **Composition defaults:** 1920×1080, 30 fps, 30 seconds, opaque black
-  background.
-- **Layer order:** `layers[0]` is the bottom layer, `layers[-1]` the top.
-- **Transform:** coordinates are pixels, origin top-left, y down.
-  `position` places the layer's static `anchor_point`; `scale` is in percent
-  (100 = original size) and `rotation` in degrees clockwise, both around the
-  anchor point; `opacity` runs from 0.0 to 1.0.
-- **Colors** are RGBA with each channel from 0.0 to 1.0.
-- **Keyframes:** with no keyframes a property has its base value; with one
-  keyframe it has that value at all times; before the first and after the last
-  keyframe it holds their values. Between two keyframes, the easing stored on
-  the earlier keyframe shapes the interpolation. Setting a keyframe at an
-  existing time replaces it.
-- **Easing:** `ease-in` is `t²`, `ease-out` is `1 - (1 - t)²`, `ease-in-out`
-  is smoothstep (`3t² - 2t³`), and `cubic-bezier` behaves like CSS
-  `cubic-bezier()`. These are not exact copies of After Effects easing.
-- **IDs** are UUID strings that survive save, load, undo and redo;
-  `Layer.duplicate()` gives the copy a new ID.
-
-## Project files
-
-Projects are saved as indented, UTF-8 JSON with a fixed key order, so the
-same project always produces the same file. Every file starts with:
-
-```json
-{
-  "format": "aemvp",
-  "version": 1,
-  "name": "Example",
-  "compositions": [ ... ]
-}
-```
-
-Animatable properties are stored as a base value plus keyframes:
-
-```json
-"opacity": {
-  "value": 1.0,
-  "keyframes": [
-    {"time": 0.0, "value": 0.0, "easing": {"type": "ease-out"}},
-    {"time": 1.0, "value": 1.0, "easing": {"type": "cubic-bezier", "x1": 0.25, "y1": 0.1, "x2": 0.25, "y2": 1.0}}
-  ]
-}
-```
-
-Each layer has an explicit `"type"` of `solid`, `shape`, `text` or `image`.
-Loading is strict: an unknown format or version, a missing or unknown key, a
-wrong type or an invalid value raises `ProjectFormatError` naming the exact
-location, such as `compositions[0].layers[2].opacity.keyframes[1].time`.
-
-## Rendering
-
-```python
-from core.renderer import CairoRenderer
-
-frame = CairoRenderer().render_frame(composition, 2.0)
-frame.write_png('frame.png')
-frame.pixel(10, 20)   # Pixel(r, g, b, a), 0–255, premultiplied
-```
-
-`CairoRenderer` draws on the CPU into a `cairo.FORMAT_ARGB32` surface at the
-composition's resolution. It needs pycairo, PyGObject, Pango/PangoCairo and
-GdkPixbuf, all part of the GNOME 51 runtime; Meson checks for them. It does
-not use GTK, so it runs in a plain `python3` process.
-
-- The background is painted first (a transparent background stays
-  transparent), then `layers[0]` through `layers[-1]`. Invisible layers are
-  skipped. Rendering never changes the composition.
-- Each layer is transformed as described under *Core model*. Opacity fades the
-  whole layer, so overlapping fill and stroke do not show through each other.
-  Strokes are drawn in layer space and scale with the layer.
-- **Shapes:** rectangles and ellipses are centered on the layer origin and
-  filled, then stroked; lines run from `start` to `end` and are stroked only.
-- **Text** is laid out with Pango using system fonts. The first line's
-  baseline is at the layer origin; `left`, `center` and `right` alignment put
-  the start, middle or end of the text there. Hinting is off so text renders
-  identically at any position.
-- **Images** (PNG, JPEG and other formats GdkPixbuf supports) are drawn at
-  their natural pixel size with their top-left corner at the layer origin,
-  and filtered bilinearly. Each renderer caches decoded images by resolved
-  path; a missing or unreadable file raises `RenderError`.
-- `RenderedFrame.surface` stores each pixel as a native-endian 32-bit word,
-  alpha in the top byte, then red, green and blue, premultiplied by alpha.
-  `RenderedFrame.pixel()` decodes it the same way on every machine.
-
-Rendering the same composition at the same time always gives the same pixels.
-
-### Demo
+`examples/mophic-demo.aemvp` (+ `examples/mophic-demo.assets/`) is the packaged
+demo. **Open Demo** loads it. The CLI PNG demo remains:
 
 ```bash
 python3 -m examples.phase3_demo
 ```
 
-`examples/demo_project.py` builds the 1920×1080, 30 fps, 5 second composition
-(background, animated title, subtitle, rectangle, ellipse, growing line,
-fading highlight and logo). The logo is the tracked asset
-`examples/assets/phase3-logo.png`, installed next to the module. The CLI demo
-writes the frame at 2.0 s to `_output/phase3-render.png`. `_output/` is
-ignored by Git.
+### Keyboard shortcuts
 
-## Preview and playback
+| Shortcut | Action |
+|---|---|
+| Ctrl+N / O / S | New / Open / Save |
+| Ctrl+Shift+S | Save As |
+| Ctrl+E | Export |
+| Ctrl+Z / Ctrl+Shift+Z | Undo / Redo |
+| Space | Play / Pause |
+| Home / End | Start / end |
+| Left / Right | Step one frame |
+| Delete | Selected keyframe, else selected layer |
 
-The application window shows the demo composition in a `Gtk.DrawingArea`
-preview. The frame is scaled to fit while preserving aspect ratio and centred
-with a dark letterbox. Playback is driven by GTK's frame clock
-(`add_tick_callback`), not a fixed timer.
+## Project files
 
-Controls in the bottom bar:
+Format `aemvp` version `1`. Image layer `path` values are project-relative when
+saved (e.g. `demo.assets/images/logo.png`). Resolve against the project
+directory at load/render.
 
-- **Stop** — pause and return to time 0
-- **Play / Pause** — start or freeze at the current time
-- **Loop** — wrap to the start at the end of the composition
-- **Time scale** — scrub by clicking or dragging
-- **Time label** — current time and duration as `M:SS.ss`
+## Export
 
-`src/playback.py` owns the playhead and is free of GTK imports, so its
-timing logic is unit-tested with fake clocks. `src/preview.py` only paints
-the current `RenderedFrame` surface; it never advances time or re-renders.
+```python
+from core.exporter import export_composition, find_ffmpeg
 
-## Layer editor
+export_composition(composition, 'out.mp4', width=1280, height=720, fps=30)
+```
 
-The main window is a three-column layout: **layers | preview | properties**.
+Requires FFmpeg with `libx264`. Override the binary with `MOPHIC_FFMPEG`.
+Flatpak builds ship `/app/bin/ffmpeg` (no host spawn). Cancel deletes a
+partial output file.
 
-### Layers
+## Limitations (honest)
 
-- Lists `composition.layers` top-first (render order is still bottom → top)
-- Select a layer to edit it
-- Add Text, Rectangle, Ellipse, Line, Solid or Image (image uses the packaged demo logo)
-- Delete, duplicate, rename, move up/down, and toggle visibility
-- Mutations go through the existing core command / undo stack (no undo UI yet)
-
-### Properties
-
-- Transform: position, scale (%), rotation (°), opacity (UI 0–100%, core 0–1)
-- Type-specific fields for solid colour, shape geometry/fill/stroke, text content
-  and appearance, and a read-only image path
-- Animated properties show `value_at(current_time)` as read-only so keyframes
-  are not overwritten; keyframe editing is not implemented yet
-- Edits refresh the preview immediately; playback and scrubbing keep working
-
-There is no timeline, project open/save dialog or export yet.
+- CPU Cairo only; no GPU acceleration or multi-threaded render
+- No audio, masks, effects, parenting, or 3D
+- Text uses system fonts via Pango; no per-character animation
+- Image decode via GdkPixbuf; missing files draw a magenta “Missing” tile
+- Export scales by changing composition size on a deep-copied snapshot (no
+  high-quality scaler beyond Cairo)
+- Timeline shows only the selected layer’s transform tracks
+- Continuous spin edits are not coalesced into a single undo step (keyframe
+  drag commits once on release)
 
 ## Tests
 
-The core and playback tests use pytest and run without GTK. Renderer and
-preview paint tests need pycairo; window tests need a display. From the
-project root:
-
 ```bash
 python3 -m pytest
+meson test -C build
 ```
 
-`meson test -C build` runs the same suite together with the metadata checks.
-pytest is not part of the GNOME SDK, so inside Flatpak builds the core test is
-skipped.
-
-## GNOME Builder
-
-1. Start GNOME Builder and choose **Open a Project**, then select this
-   directory. From a terminal: `gnome-builder -p .`
-2. Builder detects `io.github.eijiotieno.Mophic.json` and creates a build
-   configuration that uses the `org.gnome.Sdk//51` runtime. You can check it
-   under **Configure Project**.
-3. Click **Build** (the hammer button, or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>B</kbd>).
-4. Click **Run** (the play button, or <kbd>Shift</kbd>+<kbd>Ctrl</kbd>+<kbd>Space</kbd>).
+Export tests skip when FFmpeg/`libx264` is unavailable. Window tests need a
+display. Inside Flatpak SDK builds, pytest may be skipped by Meson.
 
 ## CLI build
-
-The launcher script loads its Python modules and GResource bundle from the
-install prefix, so install into a local prefix before running:
 
 ```bash
 meson setup build --prefix="$PWD/_install"
 meson compile -C build
-meson test -C build        # metadata checks and the core test suite
+meson test -C build
 meson install -C build
 ./_install/bin/mophic
 ```
 
-If `build/` already exists, run `meson setup --reconfigure build` instead of
-`meson setup build`.
-
 ## Flatpak build
-
-Build the manifest, install it into your user installation, and run it:
 
 ```bash
 flatpak-builder --user --install --force-clean flatpak-build io.github.eijiotieno.Mophic.json
 flatpak run io.github.eijiotieno.Mophic
 ```
 
-The manifest builds the working tree directly (a `dir` source), so
-uncommitted changes are included. Local build output (`build`, `_install`,
-`flatpak-build`) is skipped.
+The manifest bundles **x264** and a minimal **FFmpeg** (rawvideo in, libx264
+MP4 out) before the `mophic` module. Finish-args are Wayland/X11/DRI only.
 
 ## License
 

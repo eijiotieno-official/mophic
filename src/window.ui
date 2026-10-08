@@ -62,50 +62,64 @@
         </property>
         <child type="bottom">
           <object class="GtkBox">
-            <property name="spacing">6</property>
-            <property name="margin-top">6</property>
-            <property name="margin-bottom">6</property>
-            <property name="margin-start">6</property>
-            <property name="margin-end">12</property>
+            <property name="orientation">vertical</property>
+            <property name="spacing">0</property>
             <child>
-              <object class="GtkButton">
-                <property name="icon-name">media-playback-stop-symbolic</property>
-                <property name="tooltip-text" translatable="yes">Stop</property>
-                <property name="action-name">win.stop</property>
-              </object>
-            </child>
-            <child>
-              <object class="GtkButton" id="play_button">
-                <property name="icon-name">media-playback-start-symbolic</property>
-                <property name="tooltip-text" translatable="yes">Play</property>
-                <property name="action-name">win.play-pause</property>
-              </object>
-            </child>
-            <child>
-              <object class="GtkToggleButton" id="loop_button">
-                <property name="icon-name">media-playlist-repeat-symbolic</property>
-                <property name="tooltip-text" translatable="yes">Loop</property>
-                <property name="action-name">win.loop</property>
-              </object>
-            </child>
-            <child>
-              <object class="GtkScale" id="time_scale">
+              <object class="GtkBox" id="timeline_host">
+                <property name="orientation">vertical</property>
+                <property name="height-request">180</property>
                 <property name="hexpand">True</property>
-                <property name="draw-value">False</property>
-                <accessibility>
-                  <property name="label" translatable="yes">Current Time</property>
-                </accessibility>
-                <property name="adjustment">
-                  <object class="GtkAdjustment" id="time_adjustment"/>
-                </property>
+                <property name="vexpand">False</property>
               </object>
             </child>
             <child>
-              <object class="GtkLabel" id="time_label">
-                <property name="label">0:00.00</property>
-                <style>
-                  <class name="numeric"/>
-                </style>
+              <object class="GtkBox">
+                <property name="spacing">6</property>
+                <property name="margin-top">6</property>
+                <property name="margin-bottom">6</property>
+                <property name="margin-start">6</property>
+                <property name="margin-end">12</property>
+                <child>
+                  <object class="GtkButton">
+                    <property name="icon-name">media-playback-stop-symbolic</property>
+                    <property name="tooltip-text" translatable="yes">Stop</property>
+                    <property name="action-name">win.stop</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkButton" id="play_button">
+                    <property name="icon-name">media-playback-start-symbolic</property>
+                    <property name="tooltip-text" translatable="yes">Play</property>
+                    <property name="action-name">win.play-pause</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkToggleButton" id="loop_button">
+                    <property name="icon-name">media-playlist-repeat-symbolic</property>
+                    <property name="tooltip-text" translatable="yes">Loop</property>
+                    <property name="action-name">win.loop</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkScale" id="time_scale">
+                    <property name="hexpand">True</property>
+                    <property name="draw-value">False</property>
+                    <accessibility>
+                      <property name="label" translatable="yes">Current Time</property>
+                    </accessibility>
+                    <property name="adjustment">
+                      <object class="GtkAdjustment" id="time_adjustment"/>
+                    </property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="time_label">
+                    <property name="label">0:00.00</property>
+                    <style>
+                      <class name="numeric"/>
+                    </style>
+                  </object>
+                </child>
               </object>
             </child>
           </object>
@@ -114,6 +128,42 @@
     </property>
   </template>
   <menu id="primary_menu">
+    <section>
+      <item>
+        <attribute name="label" translatable="yes">_New Project</attribute>
+        <attribute name="action">win.new</attribute>
+      </item>
+      <item>
+        <attribute name="label" translatable="yes">_Open…</attribute>
+        <attribute name="action">win.open</attribute>
+      </item>
+      <item>
+        <attribute name="label" translatable="yes">Open _Demo</attribute>
+        <attribute name="action">win.open-demo</attribute>
+      </item>
+      <item>
+        <attribute name="label" translatable="yes">_Save</attribute>
+        <attribute name="action">win.save</attribute>
+      </item>
+      <item>
+        <attribute name="label" translatable="yes">Save _As…</attribute>
+        <attribute name="action">win.save-as</attribute>
+      </item>
+      <item>
+        <attribute name="label" translatable="yes">_Export Video…</attribute>
+        <attribute name="action">win.export</attribute>
+      </item>
+    </section>
+    <section>
+      <item>
+        <attribute name="label" translatable="yes">_Undo</attribute>
+        <attribute name="action">win.undo</attribute>
+      </item>
+      <item>
+        <attribute name="label" translatable="yes">_Redo</attribute>
+        <attribute name="action">win.redo</attribute>
+      </item>
+    </section>
     <section>
       <item>
         <attribute name="label" translatable="yes">_Keyboard Shortcuts</attribute>

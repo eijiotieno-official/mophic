@@ -1,0 +1,506 @@
+{
+  "format": "aemvp",
+  "version": 1,
+  "name": "Mophic Demo",
+  "compositions": [
+    {
+      "id": "1b144aa5-938c-4adf-a0e6-97b1ee36d736",
+      "name": "Phase 3 demo",
+      "width": 1920,
+      "height": 1080,
+      "fps": 30.0,
+      "duration": 5.0,
+      "background_color": {
+        "r": 0.0,
+        "g": 0.0,
+        "b": 0.0,
+        "a": 1.0
+      },
+      "layers": [
+        {
+          "id": "ae4f193f-2296-484d-a6a2-db832af95f0f",
+          "type": "solid",
+          "name": "Background",
+          "visible": true,
+          "anchor_point": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "position": {
+            "value": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "keyframes": []
+          },
+          "scale": {
+            "value": {
+              "x": 100.0,
+              "y": 100.0
+            },
+            "keyframes": []
+          },
+          "rotation": {
+            "value": 0.0,
+            "keyframes": []
+          },
+          "opacity": {
+            "value": 1.0,
+            "keyframes": []
+          },
+          "color": {
+            "r": 0.07,
+            "g": 0.08,
+            "b": 0.11,
+            "a": 1.0
+          }
+        },
+        {
+          "id": "583dc5d4-8a36-4995-9637-f689f3312cf0",
+          "type": "text",
+          "name": "Title",
+          "visible": true,
+          "anchor_point": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "position": {
+            "value": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "keyframes": [
+              {
+                "time": 0.0,
+                "value": {
+                  "x": 960.0,
+                  "y": 420.0
+                },
+                "easing": {
+                  "type": "cubic-bezier",
+                  "x1": 0.2,
+                  "y1": 0.0,
+                  "x2": 0.0,
+                  "y2": 1.0
+                }
+              },
+              {
+                "time": 1.5,
+                "value": {
+                  "x": 960.0,
+                  "y": 340.0
+                },
+                "easing": {
+                  "type": "linear"
+                }
+              }
+            ]
+          },
+          "scale": {
+            "value": {
+              "x": 100.0,
+              "y": 100.0
+            },
+            "keyframes": []
+          },
+          "rotation": {
+            "value": 0.0,
+            "keyframes": []
+          },
+          "opacity": {
+            "value": 1.0,
+            "keyframes": [
+              {
+                "time": 0.0,
+                "value": 0.0,
+                "easing": {
+                  "type": "ease-out"
+                }
+              },
+              {
+                "time": 1.0,
+                "value": 1.0,
+                "easing": {
+                  "type": "linear"
+                }
+              }
+            ]
+          },
+          "text": "Mophic",
+          "font_family": "Sans",
+          "font_size": 140.0,
+          "color": {
+            "r": 1.0,
+            "g": 1.0,
+            "b": 1.0,
+            "a": 1.0
+          },
+          "alignment": "center"
+        },
+        {
+          "id": "6a9d5993-d9b4-440e-998c-0dfaa3d20914",
+          "type": "text",
+          "name": "Subtitle",
+          "visible": true,
+          "anchor_point": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "position": {
+            "value": {
+              "x": 960.0,
+              "y": 420.0
+            },
+            "keyframes": []
+          },
+          "scale": {
+            "value": {
+              "x": 100.0,
+              "y": 100.0
+            },
+            "keyframes": []
+          },
+          "rotation": {
+            "value": 0.0,
+            "keyframes": []
+          },
+          "opacity": {
+            "value": 1.0,
+            "keyframes": []
+          },
+          "text": "Phase 3 — CPU Cairo renderer",
+          "font_family": "Sans",
+          "font_size": 44.0,
+          "color": {
+            "r": 0.75,
+            "g": 0.78,
+            "b": 0.85,
+            "a": 1.0
+          },
+          "alignment": "center"
+        },
+        {
+          "id": "0432a21e-5641-4b0f-82db-38ce71983533",
+          "type": "shape",
+          "name": "Rectangle",
+          "visible": true,
+          "anchor_point": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "position": {
+            "value": {
+              "x": 560.0,
+              "y": 740.0
+            },
+            "keyframes": []
+          },
+          "scale": {
+            "value": {
+              "x": 100.0,
+              "y": 100.0
+            },
+            "keyframes": []
+          },
+          "rotation": {
+            "value": 0.0,
+            "keyframes": [
+              {
+                "time": 0.0,
+                "value": 0.0,
+                "easing": {
+                  "type": "ease-in-out"
+                }
+              },
+              {
+                "time": 4.0,
+                "value": 8.0,
+                "easing": {
+                  "type": "linear"
+                }
+              }
+            ]
+          },
+          "opacity": {
+            "value": 1.0,
+            "keyframes": []
+          },
+          "shape_type": "rectangle",
+          "width": 520.0,
+          "height": 280.0,
+          "start": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "end": {
+            "x": 100.0,
+            "y": 0.0
+          },
+          "fill_color": {
+            "r": 0.2,
+            "g": 0.45,
+            "b": 0.9,
+            "a": 1.0
+          },
+          "stroke_color": {
+            "r": 1.0,
+            "g": 1.0,
+            "b": 1.0,
+            "a": 1.0
+          },
+          "stroke_width": 6.0
+        },
+        {
+          "id": "87bf8322-4710-4791-aeb4-8d5dc77d4d3d",
+          "type": "shape",
+          "name": "Ellipse",
+          "visible": true,
+          "anchor_point": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "position": {
+            "value": {
+              "x": 1360.0,
+              "y": 740.0
+            },
+            "keyframes": []
+          },
+          "scale": {
+            "value": {
+              "x": 100.0,
+              "y": 100.0
+            },
+            "keyframes": [
+              {
+                "time": 0.0,
+                "value": {
+                  "x": 80.0,
+                  "y": 80.0
+                },
+                "easing": {
+                  "type": "ease-out"
+                }
+              },
+              {
+                "time": 2.5,
+                "value": {
+                  "x": 100.0,
+                  "y": 100.0
+                },
+                "easing": {
+                  "type": "linear"
+                }
+              }
+            ]
+          },
+          "rotation": {
+            "value": 0.0,
+            "keyframes": []
+          },
+          "opacity": {
+            "value": 1.0,
+            "keyframes": []
+          },
+          "shape_type": "ellipse",
+          "width": 320.0,
+          "height": 320.0,
+          "start": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "end": {
+            "x": 100.0,
+            "y": 0.0
+          },
+          "fill_color": {
+            "r": 0.95,
+            "g": 0.55,
+            "b": 0.15,
+            "a": 1.0
+          },
+          "stroke_color": null,
+          "stroke_width": 0.0
+        },
+        {
+          "id": "86aebc5c-6884-4060-93e4-9587110ddc58",
+          "type": "shape",
+          "name": "Line",
+          "visible": true,
+          "anchor_point": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "position": {
+            "value": {
+              "x": 960.0,
+              "y": 480.0
+            },
+            "keyframes": []
+          },
+          "scale": {
+            "value": {
+              "x": 100.0,
+              "y": 100.0
+            },
+            "keyframes": [
+              {
+                "time": 0.5,
+                "value": {
+                  "x": 0.0,
+                  "y": 100.0
+                },
+                "easing": {
+                  "type": "ease-in-out"
+                }
+              },
+              {
+                "time": 2.5,
+                "value": {
+                  "x": 100.0,
+                  "y": 100.0
+                },
+                "easing": {
+                  "type": "linear"
+                }
+              }
+            ]
+          },
+          "rotation": {
+            "value": 0.0,
+            "keyframes": []
+          },
+          "opacity": {
+            "value": 1.0,
+            "keyframes": []
+          },
+          "shape_type": "line",
+          "width": 100.0,
+          "height": 100.0,
+          "start": {
+            "x": -700.0,
+            "y": 0.0
+          },
+          "end": {
+            "x": 700.0,
+            "y": 0.0
+          },
+          "fill_color": null,
+          "stroke_color": {
+            "r": 1.0,
+            "g": 1.0,
+            "b": 1.0,
+            "a": 1.0
+          },
+          "stroke_width": 6.0
+        },
+        {
+          "id": "d20b965c-d6a1-48b1-87f0-36a749f95957",
+          "type": "shape",
+          "name": "Highlight",
+          "visible": true,
+          "anchor_point": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "position": {
+            "value": {
+              "x": 760.0,
+              "y": 640.0
+            },
+            "keyframes": []
+          },
+          "scale": {
+            "value": {
+              "x": 100.0,
+              "y": 100.0
+            },
+            "keyframes": []
+          },
+          "rotation": {
+            "value": 45.0,
+            "keyframes": []
+          },
+          "opacity": {
+            "value": 1.0,
+            "keyframes": [
+              {
+                "time": 1.0,
+                "value": 0.0,
+                "easing": {
+                  "type": "ease-in-out"
+                }
+              },
+              {
+                "time": 2.5,
+                "value": 0.8,
+                "easing": {
+                  "type": "ease-in-out"
+                }
+              },
+              {
+                "time": 4.0,
+                "value": 0.0,
+                "easing": {
+                  "type": "linear"
+                }
+              }
+            ]
+          },
+          "shape_type": "rectangle",
+          "width": 220.0,
+          "height": 220.0,
+          "start": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "end": {
+            "x": 100.0,
+            "y": 0.0
+          },
+          "fill_color": {
+            "r": 1.0,
+            "g": 0.85,
+            "b": 0.2,
+            "a": 1.0
+          },
+          "stroke_color": null,
+          "stroke_width": 0.0
+        },
+        {
+          "id": "47c3dc49-382d-4849-90de-30a6b3dcfbd6",
+          "type": "image",
+          "name": "Logo",
+          "visible": true,
+          "anchor_point": {
+            "x": 80.0,
+            "y": 80.0
+          },
+          "position": {
+            "value": {
+              "x": 1760.0,
+              "y": 160.0
+            },
+            "keyframes": []
+          },
+          "scale": {
+            "value": {
+              "x": 100.0,
+              "y": 100.0
+            },
+            "keyframes": []
+          },
+          "rotation": {
+            "value": 0.0,
+            "keyframes": []
+          },
+          "opacity": {
+            "value": 1.0,
+            "keyframes": []
+          },
+          "path": "mophic-demo.assets/images/phase3-logo.png"
+        }
+      ]
+    }
+  ]
+}

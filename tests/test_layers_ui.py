@@ -4,7 +4,7 @@ import pytest
 
 from core import Color, Composition, Point, ShapeLayer
 from core.renderer import CairoRenderer
-from examples.demo_project import build_demo_composition
+from examples.demo_project import LOGO_PATH, build_demo_composition
 from mophic.playback import FrameCache
 from conftest import make_window, requires_display
 
@@ -31,7 +31,10 @@ def test_add_layer_kinds(window_class, app, kind):
     win = make_window(window_class, app, composition=Composition(width=200, height=100))
     try:
         before = len(win.composition.layers)
-        win.add_layer_kind(kind)
+        if kind == 'image':
+            win.add_layer_kind(kind, image_path=str(LOGO_PATH))
+        else:
+            win.add_layer_kind(kind)
         assert len(win.composition.layers) == before + 1
         selected = win.selected_layer()
         assert selected is win.composition.layers[-1]

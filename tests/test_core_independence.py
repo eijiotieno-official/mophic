@@ -6,8 +6,11 @@ import sys
 CORE_DIR = pathlib.Path(__file__).resolve().parent.parent / 'core'
 FORBIDDEN = {'gi', 'cairo', 'Gtk', 'Adw', 'numpy', 'PIL'}
 RENDERER = 'renderer.py'
+EXPORTER = 'exporter.py'
+CAIRO_MODULES = {RENDERER, EXPORTER}
 RENDERER_EXTRA_MODULES = {'cairo', 'gi'}
 RENDERER_GI_NAMESPACES = {'GdkPixbuf', 'GLib', 'Pango', 'PangoCairo'}
+EXPORTER_EXTRA_MODULES = {'cairo'}
 
 
 def test_importing_core_does_not_load_gtk_or_cairo():
@@ -39,7 +42,7 @@ def test_core_sources_only_import_the_standard_library_and_core():
     assert sources
     allowed = set(sys.stdlib_module_names)
     for source in sources:
-        if source.name == RENDERER:
+        if source.name in CAIRO_MODULES:
             continue
         for name, _names in imported_modules(source):
             top = name.split('.')[0]
@@ -57,3 +60,11 @@ def test_renderer_only_adds_cairo_pango_and_gdkpixbuf():
             assert set(names) <= RENDERER_GI_NAMESPACES, f'{RENDERER} imports {names}'
         else:
             assert not name.startswith('gi.repository.'), f'{RENDERER} imports {name}'
+
+
+def test_exporter_only_adds_cairo():
+    source = CORE_DIR / EXPORTER
+    allowed = set(sys.stdlib_module_names) | EXPORTER_EXTRA_MODULES
+    for name, _names in imported_modules(source):
+        top = name.split('.')[0]
+        assert top in allowed, f'{EXPORTER} imports {name}'

@@ -145,14 +145,29 @@ class CairoRenderer:
 
     Decoded images are cached by resolved path for the renderer's lifetime;
     call ``clear_image_cache()`` after an image file changes on disk.
+
+    Relative ImageLayer paths are resolved against ``base_directory`` when set
+    (typically the project file's parent). Missing or unreadable images draw a
+    soft ``Missing`` placeholder instead of raising ``RenderError``.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, *, base_directory: str | os.PathLike[str] | None = None) -> None:
         self._images: dict[str, cairo.ImageSurface] = {}
+        self._base_directory = os.fspath(base_directory) if base_directory else None
         self._font_options = cairo.FontOptions()
         self._font_options.set_antialias(cairo.ANTIALIAS_GRAY)
         self._font_options.set_hint_style(cairo.HINT_STYLE_NONE)
         self._font_options.set_hint_metrics(cairo.HINT_METRICS_OFF)
+
+    @property
+    def base_directory(self) -> str | None:
+        """Directory used to resolve relative image paths."""
+        return self._base_directory
+
+    def set_base_directory(self, directory: str | os.PathLike[str] | None) -> None:
+        """Set the project directory for relative image paths and clear the cache."""
+        self._base_directory = os.fspath(directory) if directory else None
+        self.clear_image_cache()
 
     def render_frame(self, composition: Composition, time_seconds: float) -> RenderedFrame:
         """Render ``composition`` at ``time_seconds`` (>= 0) into a new frame.
@@ -235,11 +250,23 @@ class CairoRenderer:
         ctx.move_to(x, -baseline)
         PangoCairo.show_layout(ctx, layout)
 
+    def _resolve_image_path(self, path: str) -> str:
+        if os.path.isabs(path) or self._base_directory is None:
+            return path
+        return os.path.normpath(os.path.join(self._base_directory, path))
+
     def _load_image(self, path: str) -> cairo.ImageSurface:
-        key = os.path.realpath(path)
+        resolved = self._resolve_image_path(path)
+        try:
+            key = os.path.realpath(resolved)
+        except OSError:
+            key = resolved
         image = self._images.get(key)
         if image is None:
-            image = _decode_image(path, key)
+            try:
+                image = _decode_image(path, key)
+            except RenderError:
+                image = _missing_image_placeholder()
             self._images[key] = image
         return image
 
@@ -320,6 +347,31 @@ def _draw_image(ctx: cairo.Context, image: cairo.ImageSurface) -> None:
     ctx.get_source().set_filter(cairo.FILTER_BILINEAR)
     ctx.rectangle(0.0, 0.0, image.get_width(), image.get_height())
     ctx.fill()
+
+
+_MISSING_PLACEHOLDER_SIZE = 200
+
+
+def _missing_image_placeholder() -> cairo.ImageSurface:
+    """A visible stand-in when an image file is missing or unreadable."""
+    size = _MISSING_PLACEHOLDER_SIZE
+    surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, size, size)
+    ctx = cairo.Context(surface)
+    ctx.set_source_rgb(0.55, 0.15, 0.35)
+    ctx.paint()
+    ctx.set_source_rgb(0.95, 0.85, 0.90)
+    ctx.set_line_width(4.0)
+    ctx.rectangle(8, 8, size - 16, size - 16)
+    ctx.stroke()
+    ctx.select_font_face('Sans', cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
+    ctx.set_font_size(28)
+    text = 'Missing'
+    extents = ctx.text_extents(text)
+    ctx.move_to((size - extents.width) / 2 - extents.x_bearing,
+                (size - extents.height) / 2 - extents.y_bearing)
+    ctx.show_text(text)
+    surface.flush()
+    return surface
 
 
 def _decode_image(path: str, resolved_path: str) -> cairo.ImageSurface:

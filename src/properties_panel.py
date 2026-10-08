@@ -21,6 +21,7 @@
 
 from collections.abc import Callable
 from gettext import gettext as _
+from pathlib import Path
 
 import gi
 
@@ -30,7 +31,17 @@ gi.require_version('Adw', '1')
 from gi.repository import Gdk, Gtk
 
 from core import Color, ImageLayer, Layer, ShapeLayer, SolidLayer, TextLayer
+from core.easing import EASING_KINDS, Easing
 from core.layers import SHAPE_TYPES, TEXT_ALIGNMENTS
+from core.properties import AnimatableProperty
+
+EASING_LABELS = {
+    'linear': _('Linear'),
+    'ease-in': _('Ease In'),
+    'ease-out': _('Ease Out'),
+    'ease-in-out': _('Ease In-Out'),
+    'cubic-bezier': _('Cubic Bezier'),
+}
 
 
 def color_to_rgba(color: Color) -> Gdk.RGBA:
@@ -58,6 +69,8 @@ class PropertiesPanel(Gtk.Box):
         self._time = 0.0
         self._suppress = False
         self._on_edit: Callable[[str, object], None] | None = None
+        self._selected_kf: tuple[str, float] | None = None
+        self._resolve_image: Callable[[str], Path] | None = None
 
         header = Gtk.Label(label=_('Properties'), xalign=0.0)
         header.add_css_class('heading')
@@ -92,6 +105,7 @@ class PropertiesPanel(Gtk.Box):
         self.append(self._stack)
 
         self._build_transform()
+        self._build_easing()
         self._solid_box = self._section(_('Appearance'))
         self._shape_box = self._section(_('Appearance'))
         self._text_box = self._section(_('Content'))
@@ -104,13 +118,23 @@ class PropertiesPanel(Gtk.Box):
 
         self._stack.set_visible_child_name('empty')
 
-    def connect_handlers(self, *, on_edit: Callable[[str, object], None]) -> None:
+    def connect_handlers(self, *, on_edit: Callable[[str, object], None],
+                         resolve_image: Callable[[str], Path] | None = None) -> None:
         """``on_edit(field, value)`` applies a mutation for the selected layer."""
         self._on_edit = on_edit
+        self._resolve_image = resolve_image
 
     def clear(self) -> None:
         self._layer = None
+        self._selected_kf = None
         self._stack.set_visible_child_name('empty')
+
+    def set_selected_keyframe(self, track: str | None, time: float | None) -> None:
+        if track is None or time is None:
+            self._selected_kf = None
+        else:
+            self._selected_kf = (track, time)
+        self._bind_easing()
 
     def bind(self, layer: Layer | None, time_seconds: float) -> None:
         """Populate controls from ``layer`` at ``time_seconds`` without mutating it."""
@@ -123,6 +147,7 @@ class PropertiesPanel(Gtk.Box):
         self._suppress = True
         try:
             self._bind_transform(layer, time_seconds)
+            self._bind_easing()
             self._show_type_sections(layer)
             if isinstance(layer, SolidLayer):
                 self._set_color(self._solid_color, layer.color)
@@ -131,8 +156,18 @@ class PropertiesPanel(Gtk.Box):
             elif isinstance(layer, TextLayer):
                 self._bind_text(layer)
             elif isinstance(layer, ImageLayer):
-                self._image_path.set_label(layer.path)
-                self._image_path.set_tooltip_text(layer.path)
+                display = layer.path
+                if self._resolve_image is not None:
+                    resolved = self._resolve_image(layer.path)
+                    display = str(resolved)
+                    if not resolved.is_file():
+                        display = _('Missing image')
+                        self._image_path.set_tooltip_text(layer.path)
+                    else:
+                        self._image_path.set_tooltip_text(display)
+                else:
+                    self._image_path.set_tooltip_text(layer.path)
+                self._image_path.set_label(display)
         finally:
             self._suppress = False
 
@@ -161,6 +196,27 @@ class PropertiesPanel(Gtk.Box):
         spin.connect('value-changed', self._on_spin_changed)
         return spin
 
+    def _kf_button(self, track: str) -> Gtk.ToggleButton:
+        button = Gtk.ToggleButton()
+        button.set_icon_name('starred-symbolic')
+        button.set_tooltip_text(_('Toggle keyframe at playhead'))
+        button._track = track  # noqa: SLF001
+        button.connect('toggled', self._on_kf_toggled)
+        return button
+
+    def _anim_row(self, parent: Gtk.Box, title: str, spin: Gtk.SpinButton,
+                  track: str) -> Gtk.Box:
+        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        label = Gtk.Label(label=title, xalign=0.0, hexpand=True)
+        spin.set_hexpand(True)
+        button = self._kf_button(track)
+        row.append(label)
+        row.append(spin)
+        row.append(button)
+        parent.append(row)
+        setattr(self, f'_kf_{track}_{spin._field}', button)  # noqa: SLF001
+        return row
+
     def _build_transform(self) -> None:
         box = self._section(_('Transform'))
         self._pos_x = self._spin(-100_000, 100_000, 1)
@@ -175,13 +231,41 @@ class PropertiesPanel(Gtk.Box):
         self._scale_y._field = 'scale_y'  # noqa: SLF001
         self._rotation._field = 'rotation'  # noqa: SLF001
         self._opacity._field = 'opacity'  # noqa: SLF001
-        self._row(box, _('Position X'), self._pos_x)
-        self._row(box, _('Position Y'), self._pos_y)
-        self._row(box, _('Scale X'), self._scale_x)
-        self._row(box, _('Scale Y'), self._scale_y)
-        self._row(box, _('Rotation'), self._rotation)
-        self._row(box, _('Opacity'), self._opacity)
+        self._anim_row(box, _('Position X'), self._pos_x, 'position')
+        self._anim_row(box, _('Position Y'), self._pos_y, 'position')
+        self._anim_row(box, _('Scale X'), self._scale_x, 'scale')
+        self._anim_row(box, _('Scale Y'), self._scale_y, 'scale')
+        self._anim_row(box, _('Rotation'), self._rotation, 'rotation')
+        self._anim_row(box, _('Opacity'), self._opacity, 'opacity')
+        self._kf_buttons = {
+            'position': (getattr(self, '_kf_position_position_x'),
+                         getattr(self, '_kf_position_position_y')),
+            'scale': (getattr(self, '_kf_scale_scale_x'),
+                      getattr(self, '_kf_scale_scale_y')),
+            'rotation': (getattr(self, '_kf_rotation_rotation'),),
+            'opacity': (getattr(self, '_kf_opacity_opacity'),),
+        }
         self._transform_box = box
+
+    def _build_easing(self) -> None:
+        self._easing_box = self._section(_('Easing'))
+        labels = [EASING_LABELS[kind] for kind in EASING_KINDS]
+        self._easing_kind = Gtk.DropDown.new_from_strings(labels)
+        self._easing_kind.connect('notify::selected', self._on_easing_kind_changed)
+        self._row(self._easing_box, _('Curve'), self._easing_kind)
+        self._ease_x1 = self._spin(0, 1, 0.01)
+        self._ease_y1 = self._spin(-2, 2, 0.01)
+        self._ease_x2 = self._spin(0, 1, 0.01)
+        self._ease_y2 = self._spin(-2, 2, 0.01)
+        self._ease_x1._field = 'easing_x1'  # noqa: SLF001
+        self._ease_y1._field = 'easing_y1'  # noqa: SLF001
+        self._ease_x2._field = 'easing_x2'  # noqa: SLF001
+        self._ease_y2._field = 'easing_y2'  # noqa: SLF001
+        self._ease_x1_row = self._row(self._easing_box, _('X1'), self._ease_x1)
+        self._ease_y1_row = self._row(self._easing_box, _('Y1'), self._ease_y1)
+        self._ease_x2_row = self._row(self._easing_box, _('X2'), self._ease_x2)
+        self._ease_y2_row = self._row(self._easing_box, _('Y2'), self._ease_y2)
+        self._easing_box.set_visible(False)
 
     def _color_button(self, field: str) -> Gtk.ColorDialogButton:
         button = Gtk.ColorDialogButton(dialog=Gtk.ColorDialog())
@@ -256,13 +340,50 @@ class PropertiesPanel(Gtk.Box):
     def _bind_transform(self, layer: Layer, time: float) -> None:
         position = layer.position.value_at(time)
         scale = layer.scale.value_at(time)
-        self._set_spin(self._pos_x, position.x, layer.position.is_animated)
-        self._set_spin(self._pos_y, position.y, layer.position.is_animated)
-        self._set_spin(self._scale_x, scale.x, layer.scale.is_animated)
-        self._set_spin(self._scale_y, scale.y, layer.scale.is_animated)
-        self._set_spin(self._rotation, layer.rotation.value_at(time), layer.rotation.is_animated)
-        self._set_spin(self._opacity, layer.opacity.value_at(time) * 100.0,
-                       layer.opacity.is_animated)
+        self._set_spin(self._pos_x, position.x, False)
+        self._set_spin(self._pos_y, position.y, False)
+        self._set_spin(self._scale_x, scale.x, False)
+        self._set_spin(self._scale_y, scale.y, False)
+        self._set_spin(self._rotation, layer.rotation.value_at(time), False)
+        self._set_spin(self._opacity, layer.opacity.value_at(time) * 100.0, False)
+        for track, buttons in self._kf_buttons.items():
+            prop: AnimatableProperty = getattr(layer, track)
+            active = prop.has_keyframe(time)
+            tip = (_('Remove keyframe') if active else _('Add keyframe'))
+            if prop.is_animated:
+                tip = f'{tip} · {_("Animated")}'
+            for button in buttons:
+                button.set_active(active)
+                button.set_tooltip_text(tip)
+
+    def _bind_easing(self) -> None:
+        layer = self._layer
+        selected = self._selected_kf
+        show = layer is not None and selected is not None
+        self._easing_box.set_visible(bool(show))
+        if not show:
+            return
+        track, time = selected
+        prop: AnimatableProperty = getattr(layer, track)
+        kf = prop.get_keyframe(time)
+        if kf is None:
+            self._easing_box.set_visible(False)
+            return
+        self._suppress = True
+        try:
+            kind_index = EASING_KINDS.index(kf.easing.kind)
+            self._easing_kind.set_selected(kind_index)
+            is_bezier = kf.easing.kind == 'cubic-bezier'
+            for row in (self._ease_x1_row, self._ease_y1_row,
+                        self._ease_x2_row, self._ease_y2_row):
+                row.set_visible(is_bezier)
+            if is_bezier:
+                self._set_spin(self._ease_x1, kf.easing.x1 or 0.0, False)
+                self._set_spin(self._ease_y1, kf.easing.y1 or 0.0, False)
+                self._set_spin(self._ease_x2, kf.easing.x2 or 1.0, False)
+                self._set_spin(self._ease_y2, kf.easing.y2 or 1.0, False)
+        finally:
+            self._suppress = False
 
     def _bind_shape(self, layer: ShapeLayer) -> None:
         self._shape_type.set_selected(SHAPE_TYPES.index(layer.shape_type))
@@ -298,8 +419,9 @@ class PropertiesPanel(Gtk.Box):
 
     def _set_spin(self, spin: Gtk.SpinButton, value: float, animated: bool) -> None:
         spin.set_value(value)
-        spin.set_sensitive(not animated)
-        spin.set_tooltip_text(_('Animated at the current time') if animated else '')
+        spin.set_sensitive(True)
+        spin.set_tooltip_text(_('Animated — edits set or update a keyframe')
+                              if animated else '')
 
     def _set_color(self, button: Gtk.ColorDialogButton, color: Color) -> None:
         button.set_rgba(color_to_rgba(color))
@@ -309,10 +431,57 @@ class PropertiesPanel(Gtk.Box):
             return
         self._on_edit(field, value)
 
+    def _on_kf_toggled(self, button: Gtk.ToggleButton) -> None:
+        if self._suppress:
+            return
+        track = getattr(button, '_track', None)
+        if not track:
+            return
+        # Sync sibling buttons for the same track without re-emitting.
+        self._suppress = True
+        try:
+            for sibling in self._kf_buttons.get(track, ()):
+                sibling.set_active(button.get_active())
+        finally:
+            self._suppress = False
+        self._emit('toggle_keyframe', track)
+
+    def _on_easing_kind_changed(self, dropdown: Gtk.DropDown, *_args) -> None:
+        if self._suppress or self._selected_kf is None:
+            return
+        index = dropdown.get_selected()
+        if 0 <= index < len(EASING_KINDS):
+            kind = EASING_KINDS[index]
+            if kind == 'cubic-bezier':
+                easing = Easing('cubic-bezier', 0.42, 0.0, 0.58, 1.0)
+            else:
+                easing = Easing(kind)
+            self._emit('keyframe_easing', easing)
+            is_bezier = kind == 'cubic-bezier'
+            for row in (self._ease_x1_row, self._ease_y1_row,
+                        self._ease_x2_row, self._ease_y2_row):
+                row.set_visible(is_bezier)
+
+    def _emit_bezier_easing(self) -> None:
+        if self._suppress or self._selected_kf is None:
+            return
+        easing = Easing(
+            'cubic-bezier',
+            self._ease_x1.get_value(),
+            self._ease_y1.get_value(),
+            self._ease_x2.get_value(),
+            self._ease_y2.get_value(),
+        )
+        self._emit('keyframe_easing', easing)
+
     def _on_spin_changed(self, spin: Gtk.SpinButton) -> None:
         field = getattr(spin, '_field', None)
-        if field:
-            self._emit(field, spin.get_value())
+        if not field:
+            return
+        if field.startswith('easing_'):
+            self._emit_bezier_easing()
+            return
+        self._emit(field, spin.get_value())
 
     def _on_color_changed(self, button: Gtk.ColorDialogButton, *_args) -> None:
         field = getattr(button, '_field', None)

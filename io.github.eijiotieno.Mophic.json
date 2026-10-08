@@ -23,6 +23,56 @@
     ],
     "modules" : [
         {
+            "name" : "x264",
+            "config-opts" : [
+                "--disable-cli",
+                "--enable-shared",
+                "--enable-pic"
+            ],
+            "sources" : [
+                {
+                    "type" : "git",
+                    "url" : "https://code.videolan.org/videolan/x264.git",
+                    "commit" : "b35605ace3ddf7c1a5d67a2eb553f034aef41d55"
+                }
+            ]
+        },
+        {
+            "name" : "ffmpeg",
+            "config-opts" : [
+                "--prefix=/app",
+                "--disable-debug",
+                "--disable-doc",
+                "--disable-static",
+                "--enable-shared",
+                "--enable-gpl",
+                "--enable-libx264",
+                "--disable-ffplay",
+                "--disable-ffprobe",
+                "--disable-network",
+                "--disable-devices",
+                "--disable-hwaccels",
+                "--enable-encoder=libx264",
+                "--enable-decoder=rawvideo",
+                "--enable-muxer=mp4",
+                "--enable-demuxer=rawvideo",
+                "--enable-protocol=file,pipe",
+                "--enable-filter=scale"
+            ],
+            "cleanup" : [
+                "/share/ffmpeg",
+                "/share/man"
+            ],
+            "sources" : [
+                {
+                    "type" : "git",
+                    "url" : "https://github.com/FFmpeg/FFmpeg.git",
+                    "tag" : "n7.1.1",
+                    "commit" : "db69d06eeeab4f46da15030a80d539efb4503ca8"
+                }
+            ]
+        },
+        {
             "name" : "mophic",
             "builddir" : true,
             "buildsystem" : "meson",

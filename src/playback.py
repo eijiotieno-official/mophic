@@ -196,6 +196,16 @@ class PlaybackController:
         self._loop = enabled
         self._notify()
 
+    def set_composition(self, composition: Composition) -> None:
+        """Switch to another composition and reset playback to the start."""
+        self.pause()
+        self._composition = composition
+        self._current_time = 0.0
+        self._origin_time = 0.0
+        self._origin_frame_time = None
+        self._last_frame_time = None
+        self._notify()
+
     def advance(self, frame_time_us: int) -> bool:
         """Update the time for a frame-clock timestamp in microseconds.
 
@@ -247,6 +257,16 @@ class FrameCache:
     def frame(self) -> RenderedFrame | None:
         """The most recently rendered frame."""
         return self._frame
+
+    @property
+    def renderer(self) -> Renderer:
+        """The renderer used by this cache."""
+        return self._renderer
+
+    def set_composition(self, composition: Composition) -> None:
+        """Switch compositions and drop the cached frame."""
+        self._composition = composition
+        self.invalidate()
 
     def invalidate(self) -> None:
         """Forget the cached frame so the next ``frame_at`` re-renders."""

@@ -2,6 +2,7 @@ core_sources = [
   '__init__.py',
   'commands.py',
   'easing.py',
+  'exporter.py',
   'layers.py',
   'project.py',
   'properties.py',
