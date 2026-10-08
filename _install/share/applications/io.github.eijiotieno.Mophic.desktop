@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Mophic
+Exec=mophic
+Icon=io.github.eijiotieno.Mophic
+Terminal=false
+Type=Application
+Categories=Graphics;
+Keywords=motion;graphics;animation;
+StartupNotify=true
+DBusActivatable=true

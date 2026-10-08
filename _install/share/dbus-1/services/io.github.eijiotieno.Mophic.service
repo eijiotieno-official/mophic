@@ -1,0 +1,3 @@
+[D-BUS Service]
+Name=io.github.eijiotieno.Mophic
+Exec=/home/eiji-otieno/Projects/mophic/_install/bin/mophic --gapplication-service
