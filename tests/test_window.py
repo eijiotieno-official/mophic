@@ -1,89 +1,9 @@
 """GTK-level window tests. Skip when there is no display or glib-compile-resources."""
 
-import shutil
-import subprocess
-from pathlib import Path
-
 import pytest
 
-from core import Color, Composition, Point, ShapeLayer
 from mophic.preview import fit_rect
-
-ROOT = Path(__file__).resolve().parent.parent
-SRC = ROOT / 'src'
-RESOURCE_XML = SRC / 'mophic.gresource.xml'
-
-
-def _have_display():
-    try:
-        import gi
-        gi.require_version('Gtk', '4.0')
-        gi.require_version('Adw', '1')
-        from gi.repository import Gtk
-        return bool(Gtk.init_check())
-    except Exception:
-        return False
-
-
-requires_display = pytest.mark.skipif(
-    not _have_display() or shutil.which('glib-compile-resources') is None,
-    reason='needs a display and glib-compile-resources',
-)
-
-
-@pytest.fixture(scope='module')
-def gresource(tmp_path_factory):
-    out_dir = tmp_path_factory.mktemp('gresource')
-    out = out_dir / 'mophic.gresource'
-    subprocess.run(
-        ['glib-compile-resources',
-         f'--sourcedir={SRC}',
-         f'--target={out}',
-         str(RESOURCE_XML)],
-        check=True,
-    )
-    return out
-
-
-@pytest.fixture(scope='module')
-def app(gresource):
-    import gi
-    gi.require_version('Gtk', '4.0')
-    gi.require_version('Adw', '1')
-    from gi.repository import Gio, Adw
-
-    resource = Gio.Resource.load(str(gresource))
-    resource._register()
-    Adw.init()
-    application = Adw.Application(application_id='io.github.eijiotieno.Mophic.tests')
-    application.register()
-    # Import after the resource is registered so the template loads.
-    from mophic.window import MophicWindow  # noqa: F401
-    yield application
-    application.release()
-
-
-@pytest.fixture
-def window_class(app):
-    from mophic.window import MophicWindow
-    return MophicWindow
-
-
-def small_comp(duration=2.0, fps=10.0):
-    """A tiny composition so window tests stay fast."""
-    comp = Composition(width=64, height=36, fps=fps, duration=duration,
-                       background_color=Color(0.1, 0.2, 0.3, 1.0))
-    layer = ShapeLayer(shape_type='rectangle', width=20, height=10,
-                       fill_color=Color(1, 0, 0, 1), position=Point(32, 18))
-    layer.opacity.set_keyframe(0.0, 0.0)
-    layer.opacity.set_keyframe(duration, 1.0)
-    comp.add_layer(layer)
-    return comp
-
-
-def make_window(window_class, app, composition=None):
-    win = window_class(application=app, composition=composition or small_comp())
-    return win
+from conftest import make_window, requires_display, small_comp
 
 
 @requires_display
@@ -97,6 +17,21 @@ def test_frame_zero_at_startup(window_class, app):
         assert win.preview.frame.height == 36
         assert win.time_label.get_label().startswith('0:00.00')
         assert win.play_button.get_icon_name() == 'media-playback-start-symbolic'
+    finally:
+        win.destroy()
+
+
+@requires_display
+def test_demo_startup_selects_title_and_shows_panels(window_class, app):
+    from examples.demo_project import build_demo_composition
+
+    win = make_window(window_class, app, composition=build_demo_composition())
+    try:
+        assert win.selected_layer() is not None
+        assert win.selected_layer().name == 'Title'
+        assert win.layer_list.get_parent() is not None
+        assert win.properties.get_parent() is not None
+        assert win.properties._stack.get_visible_child_name() == 'editor'  # noqa: SLF001
     finally:
         win.destroy()
 
@@ -140,7 +75,6 @@ def test_loop_action(window_class, app):
     win = make_window(window_class, app)
     try:
         assert win.playback.loop is False
-        # change_action_state takes the bare action name; activate_action uses win.*.
         win.change_action_state('loop', GLib.Variant.new_boolean(True))
         assert win.playback.loop is True
         win.change_action_state('loop', GLib.Variant.new_boolean(False))

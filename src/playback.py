@@ -248,6 +248,11 @@ class FrameCache:
         """The most recently rendered frame."""
         return self._frame
 
+    def invalidate(self) -> None:
+        """Forget the cached frame so the next ``frame_at`` re-renders."""
+        self._time = None
+        self._frame = None
+
     def frame_at(self, time_seconds: float) -> RenderedFrame:
         """Return the frame at ``time_seconds``.
 

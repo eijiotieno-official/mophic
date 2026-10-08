@@ -5,17 +5,16 @@ GTK 4 and libadwaita.
 
 ## Current status
 
-**Phase 4 — preview and playback.**
+**Phase 5 — layer list and properties panel.**
 
 The `core/` package models projects, compositions, layers, animatable
 properties, keyframes and easing, saves and loads them as JSON, and supports
 undo/redo. `core/renderer.py` renders any composition at any time to a Cairo
-image. The application window shows that image in a preview canvas with
-play/pause/stop, looping, scrubbing and a current-time display.
+image. The application is a basic layer editor: preview/playback, a layer
+list, and a properties panel for transforms and type-specific fields.
 
-The app currently previews a built-in demonstration composition. Layer list,
-properties panel, timeline tracks, project open/save and export are not
-implemented yet.
+The app still opens the built-in demonstration composition. Keyframe editing,
+timeline tracks, project open/save and export are not implemented yet.
 
 ## Application ID
 
@@ -36,8 +35,8 @@ core/                              Headless motion graphics model and Cairo rend
 data/                              Desktop file, AppStream metadata, schema, D-Bus service, icons
 po/                                Translation setup
 examples/                          Built-in demo composition and logo asset
-src/                               GTK/libadwaita application, preview and playback
-tests/                             pytest suite for core/, preview and playback
+src/                               GTK/libadwaita application, preview, layers and properties
+tests/                             pytest suite for core/, preview, playback and editor UI
 ```
 
 `core/` never imports GTK, GDK or libadwaita; tests enforce this. Every module
@@ -179,8 +178,29 @@ Controls in the bottom bar:
 `src/playback.py` owns the playhead and is free of GTK imports, so its
 timing logic is unit-tested with fake clocks. `src/preview.py` only paints
 the current `RenderedFrame` surface; it never advances time or re-renders.
-There is no layer list, properties panel, timeline editor, project dialog or
-export yet.
+
+## Layer editor
+
+The main window is a three-column layout: **layers | preview | properties**.
+
+### Layers
+
+- Lists `composition.layers` top-first (render order is still bottom → top)
+- Select a layer to edit it
+- Add Text, Rectangle, Ellipse, Line, Solid or Image (image uses the packaged demo logo)
+- Delete, duplicate, rename, move up/down, and toggle visibility
+- Mutations go through the existing core command / undo stack (no undo UI yet)
+
+### Properties
+
+- Transform: position, scale (%), rotation (°), opacity (UI 0–100%, core 0–1)
+- Type-specific fields for solid colour, shape geometry/fill/stroke, text content
+  and appearance, and a read-only image path
+- Animated properties show `value_at(current_time)` as read-only so keyframes
+  are not overwritten; keyframe editing is not implemented yet
+- Edits refresh the preview immediately; playback and scrubbing keep working
+
+There is no timeline, project open/save dialog or export yet.
 
 ## Tests
 

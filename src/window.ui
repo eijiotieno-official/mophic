@@ -4,7 +4,7 @@
   <requires lib="Adw" version="1.0"/>
   <template class="MophicWindow" parent="AdwApplicationWindow">
     <property name="title" translatable="yes">Mophic</property>
-    <property name="default-width">1200</property>
+    <property name="default-width">1280</property>
     <property name="default-height">800</property>
     <property name="content">
       <object class="AdwToolbarView">
@@ -23,9 +23,39 @@
         <property name="content">
           <object class="AdwToastOverlay" id="toast_overlay">
             <property name="child">
-              <object class="GtkDrawingArea" id="preview_area">
-                <property name="hexpand">True</property>
-                <property name="vexpand">True</property>
+              <object class="GtkPaned" id="outer_paned">
+                <property name="orientation">horizontal</property>
+                <property name="wide-handle">True</property>
+                <property name="position">240</property>
+                <property name="shrink-start-child">False</property>
+                <property name="resize-start-child">False</property>
+                <property name="start-child">
+                  <object class="GtkBox" id="layers_host">
+                    <property name="orientation">vertical</property>
+                    <property name="width-request">220</property>
+                  </object>
+                </property>
+                <property name="end-child">
+                  <object class="GtkPaned" id="inner_paned">
+                    <property name="orientation">horizontal</property>
+                    <property name="wide-handle">True</property>
+                    <property name="position-set">False</property>
+                    <property name="shrink-end-child">False</property>
+                    <property name="resize-end-child">False</property>
+                    <property name="start-child">
+                      <object class="GtkDrawingArea" id="preview_area">
+                        <property name="hexpand">True</property>
+                        <property name="vexpand">True</property>
+                      </object>
+                    </property>
+                    <property name="end-child">
+                      <object class="GtkBox" id="properties_host">
+                        <property name="orientation">vertical</property>
+                        <property name="width-request">240</property>
+                      </object>
+                    </property>
+                  </object>
+                </property>
               </object>
             </property>
           </object>

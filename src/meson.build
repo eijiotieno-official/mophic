@@ -28,9 +28,12 @@ configure_file(
 
 mophic_sources = [
   '__init__.py',
+  'layer_factory.py',
+  'layer_list.py',
   'main.py',
   'playback.py',
   'preview.py',
+  'properties_panel.py',
   'window.py',
 ]
 

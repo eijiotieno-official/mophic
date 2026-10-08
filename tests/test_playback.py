@@ -316,6 +316,16 @@ def test_frame_cache_reuses_same_time():
     assert renderer.calls == [0.0, 1.0 / 30]
 
 
+def test_frame_cache_invalidate_forces_rerender():
+    comp = make_comp()
+    renderer = CountingRenderer()
+    cache = FrameCache(renderer, comp)
+    cache.frame_at(0.0)
+    cache.invalidate()
+    cache.frame_at(0.0)
+    assert renderer.calls == [0.0, 0.0]
+
+
 def test_frame_cache_keeps_previous_on_error():
     class FailingRenderer:
         def __init__(self) -> None:
