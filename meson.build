@@ -13,6 +13,7 @@ dependency('libadwaita-1')
 subdir('data')
 subdir('src')
 subdir('core')
+subdir('examples')
 subdir('tests')
 subdir('po')
 

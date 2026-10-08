@@ -21,13 +21,65 @@
           </object>
         </child>
         <property name="content">
-          <object class="GtkLabel" id="label">
-            <property name="label" translatable="yes">Motion Graphics MVP</property>
-            <style>
-              <class name="title-1"/>
-            </style>
+          <object class="AdwToastOverlay" id="toast_overlay">
+            <property name="child">
+              <object class="GtkDrawingArea" id="preview_area">
+                <property name="hexpand">True</property>
+                <property name="vexpand">True</property>
+              </object>
+            </property>
           </object>
         </property>
+        <child type="bottom">
+          <object class="GtkBox">
+            <property name="spacing">6</property>
+            <property name="margin-top">6</property>
+            <property name="margin-bottom">6</property>
+            <property name="margin-start">6</property>
+            <property name="margin-end">12</property>
+            <child>
+              <object class="GtkButton">
+                <property name="icon-name">media-playback-stop-symbolic</property>
+                <property name="tooltip-text" translatable="yes">Stop</property>
+                <property name="action-name">win.stop</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="play_button">
+                <property name="icon-name">media-playback-start-symbolic</property>
+                <property name="tooltip-text" translatable="yes">Play</property>
+                <property name="action-name">win.play-pause</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkToggleButton" id="loop_button">
+                <property name="icon-name">media-playlist-repeat-symbolic</property>
+                <property name="tooltip-text" translatable="yes">Loop</property>
+                <property name="action-name">win.loop</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkScale" id="time_scale">
+                <property name="hexpand">True</property>
+                <property name="draw-value">False</property>
+                <accessibility>
+                  <property name="label" translatable="yes">Current Time</property>
+                </accessibility>
+                <property name="adjustment">
+                  <object class="GtkAdjustment" id="time_adjustment"/>
+                </property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel" id="time_label">
+                <property name="label">0:00.00</property>
+                <style>
+                  <class name="numeric"/>
+                </style>
+              </object>
+            </child>
+          </object>
+        </child>
       </object>
     </property>
   </template>

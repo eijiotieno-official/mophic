@@ -29,6 +29,8 @@ configure_file(
 mophic_sources = [
   '__init__.py',
   'main.py',
+  'playback.py',
+  'preview.py',
   'window.py',
 ]
 

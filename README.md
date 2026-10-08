@@ -5,15 +5,17 @@ GTK 4 and libadwaita.
 
 ## Current status
 
-**Phase 3 — CPU frame renderer.**
+**Phase 4 — preview and playback.**
 
 The `core/` package models projects, compositions, layers, animatable
 properties, keyframes and easing, saves and loads them as JSON, and supports
 undo/redo. `core/renderer.py` renders any composition at any time to a Cairo
-image. It is fully tested and independent of GTK.
+image. The application window shows that image in a preview canvas with
+play/pause/stop, looping, scrubbing and a current-time display.
 
-The application still opens a single empty libadwaita window. The editor UI,
-preview, playback, timeline and export are not implemented yet.
+The app currently previews a built-in demonstration composition. Layer list,
+properties panel, timeline tracks, project open/save and export are not
+implemented yet.
 
 ## Application ID
 
@@ -33,9 +35,9 @@ meson.build                        Top-level Meson project
 core/                              Headless motion graphics model and Cairo renderer
 data/                              Desktop file, AppStream metadata, schema, D-Bus service, icons
 po/                                Translation setup
-examples/                          Phase 3 demonstration script
-src/                               GTK/libadwaita application, launcher script and UI files
-tests/                             pytest suite for core/
+examples/                          Built-in demo composition and logo asset
+src/                               GTK/libadwaita application, preview and playback
+tests/                             pytest suite for core/, preview and playback
 ```
 
 `core/` never imports GTK, GDK or libadwaita; tests enforce this. Every module
@@ -152,15 +154,39 @@ Rendering the same composition at the same time always gives the same pixels.
 python3 -m examples.phase3_demo
 ```
 
-This builds a 1920×1080, 30 fps, 5 second composition with a background,
-animated title, subtitle, rectangle, ellipse, growing line, fading highlight
-and an image, and writes its frame at 2.0 s to `_output/phase3-render.png`.
-`_output/` is ignored by Git.
+`examples/demo_project.py` builds the 1920×1080, 30 fps, 5 second composition
+(background, animated title, subtitle, rectangle, ellipse, growing line,
+fading highlight and logo). The logo is the tracked asset
+`examples/assets/phase3-logo.png`, installed next to the module. The CLI demo
+writes the frame at 2.0 s to `_output/phase3-render.png`. `_output/` is
+ignored by Git.
+
+## Preview and playback
+
+The application window shows the demo composition in a `Gtk.DrawingArea`
+preview. The frame is scaled to fit while preserving aspect ratio and centred
+with a dark letterbox. Playback is driven by GTK's frame clock
+(`add_tick_callback`), not a fixed timer.
+
+Controls in the bottom bar:
+
+- **Stop** — pause and return to time 0
+- **Play / Pause** — start or freeze at the current time
+- **Loop** — wrap to the start at the end of the composition
+- **Time scale** — scrub by clicking or dragging
+- **Time label** — current time and duration as `M:SS.ss`
+
+`src/playback.py` owns the playhead and is free of GTK imports, so its
+timing logic is unit-tested with fake clocks. `src/preview.py` only paints
+the current `RenderedFrame` surface; it never advances time or re-renders.
+There is no layer list, properties panel, timeline editor, project dialog or
+export yet.
 
 ## Tests
 
-The core tests use pytest and run without GTK. The renderer tests also need
-pycairo, PyGObject, Pango and GdkPixbuf. From the project root:
+The core and playback tests use pytest and run without GTK. Renderer and
+preview paint tests need pycairo; window tests need a display. From the
+project root:
 
 ```bash
 python3 -m pytest

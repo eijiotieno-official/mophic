@@ -674,11 +674,9 @@ def test_renderer_runs_without_gtk(tmp_path):
 # --- Demonstration composition --------------------------------------------------------------
 
 def test_demo_composition_renders(tmp_path):
-    from examples import phase3_demo
+    from examples import demo_project, phase3_demo
 
-    logo = tmp_path / 'logo.png'
-    phase3_demo.write_logo(logo)
-    comp = phase3_demo.build_demo_composition(str(logo))
+    comp = demo_project.build_demo_composition()
     assert (comp.width, comp.height, comp.fps, comp.duration) == (1920, 1080, 30.0, 5.0)
     names = [layer.name for layer in comp.layers]
     assert names[0] == 'Background'
@@ -687,12 +685,16 @@ def test_demo_composition_renders(tmp_path):
     assert title.position.is_animated and title.opacity.is_animated
     assert comp.layers[names.index('Line')].scale.is_animated
     assert comp.layers[names.index('Highlight')].opacity.is_animated
+    logo = comp.layers[names.index('Logo')]
+    assert logo.path == str(demo_project.LOGO_PATH)
+    assert demo_project.LOGO_PATH.is_file()
 
     renderer = CairoRenderer()
     start = renderer.render_frame(comp, 0.0)
     frame = renderer.render_frame(comp, phase3_demo.RENDER_TIME)
     assert (frame.width, frame.height) == (1920, 1080)
     assert frame_bytes(frame) != frame_bytes(start)
+    assert frame.pixel(1760, 160) == WHITE_PX
 
     path = tmp_path / 'phase3-render.png'
     frame.write_png(path)
