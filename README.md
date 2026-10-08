@@ -5,14 +5,15 @@ GTK 4 and libadwaita.
 
 ## Current status
 
-**Phase 2 — headless core model.**
+**Phase 3 — CPU frame renderer.**
 
 The `core/` package models projects, compositions, layers, animatable
 properties, keyframes and easing, saves and loads them as JSON, and supports
-undo/redo. It is fully tested and independent of GTK.
+undo/redo. `core/renderer.py` renders any composition at any time to a Cairo
+image. It is fully tested and independent of GTK.
 
 The application still opens a single empty libadwaita window. The editor UI,
-renderer, preview, timeline and export are not implemented yet.
+preview, playback, timeline and export are not implemented yet.
 
 ## Application ID
 
@@ -29,16 +30,18 @@ prefix (`/io/github/eijiotieno/Mophic`) and `Adw.Application`.
 ```
 io.github.eijiotieno.Mophic.json   Flatpak manifest (org.gnome.Platform/Sdk 51)
 meson.build                        Top-level Meson project
-core/                              Headless motion graphics model (standard library only)
+core/                              Headless motion graphics model and Cairo renderer
 data/                              Desktop file, AppStream metadata, schema, D-Bus service, icons
 po/                                Translation setup
+examples/                          Phase 3 demonstration script
 src/                               GTK/libadwaita application, launcher script and UI files
 tests/                             pytest suite for core/
 ```
 
-`core/` never imports GTK, libadwaita or any rendering library; a test
-enforces this. It is installed next to the application package
-(`share/mophic/core/`), so the UI can `import core`.
+`core/` never imports GTK, GDK or libadwaita; tests enforce this. Every module
+except `core/renderer.py` uses only the Python standard library, and
+`import core` does not load Cairo or PyGObject. It is installed next to the
+application package (`share/mophic/core/`), so the UI can `import core`.
 
 ## Core model
 
@@ -106,9 +109,58 @@ Loading is strict: an unknown format or version, a missing or unknown key, a
 wrong type or an invalid value raises `ProjectFormatError` naming the exact
 location, such as `compositions[0].layers[2].opacity.keyframes[1].time`.
 
+## Rendering
+
+```python
+from core.renderer import CairoRenderer
+
+frame = CairoRenderer().render_frame(composition, 2.0)
+frame.write_png('frame.png')
+frame.pixel(10, 20)   # Pixel(r, g, b, a), 0–255, premultiplied
+```
+
+`CairoRenderer` draws on the CPU into a `cairo.FORMAT_ARGB32` surface at the
+composition's resolution. It needs pycairo, PyGObject, Pango/PangoCairo and
+GdkPixbuf, all part of the GNOME 51 runtime; Meson checks for them. It does
+not use GTK, so it runs in a plain `python3` process.
+
+- The background is painted first (a transparent background stays
+  transparent), then `layers[0]` through `layers[-1]`. Invisible layers are
+  skipped. Rendering never changes the composition.
+- Each layer is transformed as described under *Core model*. Opacity fades the
+  whole layer, so overlapping fill and stroke do not show through each other.
+  Strokes are drawn in layer space and scale with the layer.
+- **Shapes:** rectangles and ellipses are centered on the layer origin and
+  filled, then stroked; lines run from `start` to `end` and are stroked only.
+- **Text** is laid out with Pango using system fonts. The first line's
+  baseline is at the layer origin; `left`, `center` and `right` alignment put
+  the start, middle or end of the text there. Hinting is off so text renders
+  identically at any position.
+- **Images** (PNG, JPEG and other formats GdkPixbuf supports) are drawn at
+  their natural pixel size with their top-left corner at the layer origin,
+  and filtered bilinearly. Each renderer caches decoded images by resolved
+  path; a missing or unreadable file raises `RenderError`.
+- `RenderedFrame.surface` stores each pixel as a native-endian 32-bit word,
+  alpha in the top byte, then red, green and blue, premultiplied by alpha.
+  `RenderedFrame.pixel()` decodes it the same way on every machine.
+
+Rendering the same composition at the same time always gives the same pixels.
+
+### Demo
+
+```bash
+python3 -m examples.phase3_demo
+```
+
+This builds a 1920×1080, 30 fps, 5 second composition with a background,
+animated title, subtitle, rectangle, ellipse, growing line, fading highlight
+and an image, and writes its frame at 2.0 s to `_output/phase3-render.png`.
+`_output/` is ignored by Git.
+
 ## Tests
 
-The core tests use pytest and run without GTK. From the project root:
+The core tests use pytest and run without GTK. The renderer tests also need
+pycairo, PyGObject, Pango and GdkPixbuf. From the project root:
 
 ```bash
 python3 -m pytest
